@@ -21,3 +21,4 @@ export type TMDBMovieDetails = TMDBSearchItem & {
   genres?: TMDBGenre[];
   credits?: { cast?: TMDBCastMember[] };
 };
+

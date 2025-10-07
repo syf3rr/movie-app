@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import type { TMDBCastMember, TMDBGenre, TMDBMovieDetails } from "@/types/tmdb";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: idStr } = await context.params;
+  const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const res = await fetch(

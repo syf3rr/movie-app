@@ -14,3 +14,4 @@ export type MoviesResponse = {
   page: number;
   total: number;
 };
+

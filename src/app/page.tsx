@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useMovies } from "@/hooks/useMovies";
 import type { Movie } from "@/types/movie";
 import { useRouter } from "next/navigation";
@@ -11,8 +11,7 @@ import MovieCard from "@/components/MovieCard";
 import useDebouncedValue from "@/hooks/useDebouncedValue";
 import useSyncFiltersURL from "@/hooks/useSyncFiltersURL";
 
-
-export default function HomePage() {
+function HomePageInner() {
   const router = useRouter();
   const page = useFiltersStore((s) => s.page);
   const search = useFiltersStore((s) => s.search);
@@ -39,7 +38,6 @@ export default function HomePage() {
     router.replace(query ? `?${query}` : "?", { scroll: false });
   }, [page, debouncedSearch, sort, order, router]);
 
-
   if (isLoading)
     return (
       <main className="p-6 space-y-4">
@@ -63,7 +61,7 @@ export default function HomePage() {
 
   const { data: movies, total } = data as { data: Movie[]; total: number };
   const canPrev = page > 1;
-  const canNext = movies.length > 0 && page * 20 < total; 
+  const canNext = movies.length > 0 && page * 20 < total;
 
   return (
     <main className="p-6 space-y-4">
@@ -77,5 +75,23 @@ export default function HomePage() {
         ))}
       </ul>
     </main>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-72" />
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </main>
+      }
+    >
+      <HomePageInner />
+    </Suspense>
   );
 }

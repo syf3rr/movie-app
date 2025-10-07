@@ -38,7 +38,7 @@ export function useToggleFavorite() {
       return { prev };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) {
+      if (ctx && ctx.prev) {
         qc.setQueryData(["favorites"], ctx.prev);
       }
     },

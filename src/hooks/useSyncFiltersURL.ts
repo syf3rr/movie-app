@@ -38,3 +38,4 @@ export default function useSyncFiltersURL() {
     router.replace(query ? `?${query}` : "?", { scroll: false });
   }, [page, search, sort, order, router]);
 }
+

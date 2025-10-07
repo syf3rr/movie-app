@@ -1,5 +1,4 @@
 "use client";
-import { useMemo } from "react";
 import { useFavoriteIds } from "@/hooks/useFavorites";
 import useFavoriteMovies from "@/hooks/useFavoriteMovies";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";

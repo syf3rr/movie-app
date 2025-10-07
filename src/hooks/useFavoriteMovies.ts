@@ -15,3 +15,4 @@ export default function useFavoriteMovies(ids: number[]) {
     enabled: ids.length > 0,
   });
 }
+

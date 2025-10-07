@@ -6,3 +6,4 @@ export default function useFavoritesCount() {
   const { data } = useFavoriteIds();
   return data?.ids?.length ?? 0;
 }
+

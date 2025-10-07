@@ -7,3 +7,4 @@ export function posterUrl(
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/w${width}${path}`;
 }
+

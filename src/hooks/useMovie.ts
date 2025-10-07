@@ -14,3 +14,4 @@ export default function useMovie(id: number | undefined) {
     enabled: !!id && Number.isFinite(id) && id > 0,
   });
 }
+

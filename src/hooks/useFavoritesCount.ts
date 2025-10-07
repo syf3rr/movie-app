@@ -7,3 +7,4 @@ export default function useFavoritesCount() {
   return data?.ids?.length ?? 0;
 }
 
+

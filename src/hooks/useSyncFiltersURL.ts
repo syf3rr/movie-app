@@ -39,3 +39,4 @@ export default function useSyncFiltersURL() {
   }, [page, search, sort, order, router]);
 }
 
+

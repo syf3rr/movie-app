@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { tmdb } from "@/lib/tmdb";
 import type { Movie } from "@/types/movie";
 import type { TMDBCastMember, TMDBGenre, TMDBMovieDetails } from "@/types/tmdb";
 
-const TMDB_BASE = "https://api.themoviedb.org/3";
+// TMDB_BASE not needed here; using axios instance baseURL
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -18,16 +19,9 @@ export async function GET(req: Request) {
 
   const movies: Movie[] = await Promise.all(
     ids.map(async (id) => {
-      const res = await fetch(
-        `${TMDB_BASE}/movie/${id}?append_to_response=credits`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.TMDB_API_READ_TOKEN}`,
-          },
-        }
-      );
-      if (!res.ok) throw new Error(`TMDB error for id ${id}`);
-      const d = (await res.json()) as TMDBMovieDetails;
+      const d = (await tmdb
+        .get(`/movie/${id}`, { params: { append_to_response: "credits" } })
+        .then((r) => r.data)) as TMDBMovieDetails;
 
       const cast: TMDBCastMember[] = Array.isArray(d?.credits?.cast)
         ? (d.credits?.cast as TMDBCastMember[])

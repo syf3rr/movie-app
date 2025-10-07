@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { isAxiosError } from "axios";
+import { tmdb } from "@/lib/tmdb";
 import type { Movie } from "@/types/movie";
 import type {
   TMDBSearchItem,
@@ -20,47 +22,49 @@ export async function GET(req: Request) {
     | "rating";
   const order = (searchParams.get("order") || "desc") as "asc" | "desc";
 
-  const sortBy =
-    sort === "title"
-      ? `original_title.${order}`
-      : sort === "year"
-      ? `primary_release_date.${order}`
-      : `vote_average.${order}`;
+  const sortFieldMap = {
+    title: "original_title",
+    year: "primary_release_date",
+    rating: "vote_average",
+  } as const;
+  const sortBy = `${sortFieldMap[sort]}.${order}`;
 
-  const endpoint = search
-    ? `${TMDB_BASE}/search/movie?query=${encodeURIComponent(
-        search
-      )}&page=${page}&include_adult=false`
-    : `${TMDB_BASE}/discover/movie?sort_by=${encodeURIComponent(
-        sortBy
-      )}&page=${page}&include_adult=false&vote_count.gte=50`;
+  const basePath = search
+    ? `${TMDB_BASE}/search/movie`
+    : `${TMDB_BASE}/discover/movie`;
 
-  const res = await fetch(endpoint, {
-    headers: { Authorization: `Bearer ${process.env.TMDB_API_READ_TOKEN}` },
-  });
+  const qs = new URLSearchParams();
+  if (search) {
+    qs.set("query", search);
+  } else {
+    qs.set("sort_by", sortBy);
+    qs.set("vote_count.gte", "50");
+  }
+  qs.set("page", String(page));
+  qs.set("include_adult", "false");
 
-  if (!res.ok) {
-    return NextResponse.json(
-      { error: "TMDB request failed" },
-      { status: res.status }
+  const endpoint = `${basePath}?${qs.toString()}`;
+
+  let res;
+  try {
+    res = await tmdb.get(
+      endpoint.replace(/^https:\/\/api\.themoviedb\.org\/3/, "")
     );
+  } catch (e: unknown) {
+    const status = isAxiosError(e) ? e.response?.status ?? 500 : 500;
+    return NextResponse.json({ error: "TMDB request failed" }, { status });
   }
 
-  const json = (await res.json()) as TMDBSearchResponse;
+  const json = res.data as TMDBSearchResponse;
 
   const results: TMDBSearchItem[] = Array.isArray(json.results)
     ? json.results.slice(0, 10)
     : [];
   const detailed = await Promise.all(
     results.map(async (m: TMDBSearchItem) => {
-      const d = (await fetch(
-        `${TMDB_BASE}/movie/${m.id}?append_to_response=credits`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.TMDB_API_READ_TOKEN}`,
-          },
-        }
-      ).then((r) => r.json())) as TMDBMovieDetails;
+      const d = (await tmdb
+        .get(`/movie/${m.id}`, { params: { append_to_response: "credits" } })
+        .then((r) => r.data)) as TMDBMovieDetails;
 
       const cast: TMDBCastMember[] = Array.isArray(d?.credits?.cast)
         ? (d.credits?.cast as TMDBCastMember[])

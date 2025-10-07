@@ -1,103 +1,112 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { useMovies } from "@/hooks/useMovies";
+
+function useDebouncedValue<T>(value: T, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
+export default function HomePage() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"title" | "year" | "rating">("rating");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+
+  const debouncedSearch = useDebouncedValue(search, 400);
+
+  const { data, isLoading, isError } = useMovies({
+    page,
+    search: debouncedSearch || undefined,
+    sort,
+    order,
+  });
+
+  if (isLoading) return <div className="p-6">Завантаження…</div>;
+  if (isError || !data) return <div className="p-6">Помилка завантаження</div>;
+
+  const { data: movies, total } = data;
+  const canPrev = page > 1;
+  const canNext = movies.length > 0 && page * 20 < total; // TMDB ~20 на сторінку
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <main className="p-6 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => {
+            setPage(1);
+            setSearch(e.target.value);
+          }}
+          placeholder="Пошук за назвою…"
+          className="px-3 py-2 border rounded w-72"
         />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <select
+          value={sort}
+          onChange={(e) => {
+            setPage(1);
+            setSort(e.target.value as typeof sort);
+          }}
+          className="px-3 py-2 border rounded"
+        >
+          <option value="rating">Rating</option>
+          <option value="title">Title</option>
+          <option value="year">Year</option>
+        </select>
+
+        <button
+          onClick={() => {
+            setPage(1);
+            setOrder((o) => (o === "asc" ? "desc" : "asc"));
+          }}
+          className="px-3 py-2 border rounded"
+          aria-label="Змінити порядок"
+          title="Змінити порядок"
+        >
+          {order === "asc" ? "▲ ASC" : "▼ DESC"}
+        </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            disabled={!canPrev}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-3 py-2 border rounded disabled:opacity-50"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Prev
+          </button>
+          <span>Page {page}</span>
+          <button
+            disabled={!canNext}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-2 border rounded disabled:opacity-50"
           >
-            Read our docs
-          </a>
+            Next
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+
+      <ul className="space-y-2">
+        {movies.map((m) => (
+          <li key={m.id} className="border rounded p-3">
+            <div className="font-medium">
+              {m.title} {m.year ? `(${m.year})` : ""}
+            </div>
+            <div className="text-sm opacity-80">Rating: {m.rating ?? "—"}</div>
+            {m.genres.length > 0 && (
+              <div className="text-xs opacity-70">Genres: {m.genres.join(", ")}</div>
+            )}
+            {m.actors.length > 0 && (
+              <div className="text-xs opacity-70">Actors: {m.actors.join(", ")}</div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useMovies, type Movie } from "@/hooks/useMovies";
 import { useFavoriteIds, useToggleFavorite } from "@/hooks/useFavorites";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ function useDebouncedValue<T>(value: T, delay = 400) {
 }
 
 export default function HomePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"title" | "year" | "rating">("rating");
@@ -34,12 +37,39 @@ export default function HomePage() {
 
   const debouncedSearch = useDebouncedValue(search, 400);
 
+  // Initialize state from URL once
+  useEffect(() => {
+    const p = Number(searchParams.get("page") || "1");
+    const s = searchParams.get("search") || "";
+    const so = (searchParams.get("sort") || "rating") as
+      | "title"
+      | "year"
+      | "rating";
+    const or = (searchParams.get("order") || "desc") as "asc" | "desc";
+    setPage(Number.isFinite(p) && p > 0 ? p : 1);
+    setSearch(s);
+    setSort(so);
+    setOrder(or);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data, isLoading, isError } = useMovies({
     page,
     search: debouncedSearch || undefined,
     sort,
     order,
   });
+
+  // Reflect state to URL (without scroll/jump)
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (page && page !== 1) qs.set("page", String(page));
+    if (debouncedSearch) qs.set("search", debouncedSearch);
+    if (sort && sort !== "rating") qs.set("sort", sort);
+    if (order && order !== "desc") qs.set("order", order);
+    const query = qs.toString();
+    router.replace(query ? `?${query}` : "?", { scroll: false });
+  }, [page, debouncedSearch, sort, order, router]);
 
   const { data: favData } = useFavoriteIds();
   const toggleFav = useToggleFavorite();

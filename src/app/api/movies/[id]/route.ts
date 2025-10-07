@@ -1,21 +1,7 @@
 import { NextResponse } from "next/server";
+import type { TMDBCastMember, TMDBGenre, TMDBMovieDetails } from "@/types/tmdb";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
-
-// Мінімальні типи відповіді TMDB для деталей фільму
-type TMDBGenre = { id: number; name: string };
-type TMDBCastMember = { id: number; name: string; popularity?: number };
-type TMDBMovieDetails = {
-  id: number;
-  title?: string;
-  original_title?: string;
-  release_date?: string | null;
-  vote_average?: number;
-  overview?: string | null;
-  poster_path?: string | null;
-  genres?: TMDBGenre[];
-  credits?: { cast?: TMDBCastMember[] };
-};
 
 export async function GET(
   _req: Request,

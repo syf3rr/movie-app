@@ -1,29 +1,6 @@
 import { NextResponse } from "next/server";
-
-type Movie = {
-  id: number;
-  title: string;
-  year: number | null;
-  rating: number | null;
-  description: string | null;
-  actors: string[];
-  genres: string[];
-  posterPath?: string | null;
-};
-
-type TMDBGenre = { id: number; name: string };
-type TMDBCastMember = { id: number; name: string; popularity?: number };
-type TMDBMovieDetails = {
-  id: number;
-  title?: string;
-  original_title?: string;
-  release_date?: string | null;
-  vote_average?: number;
-  overview?: string | null;
-  poster_path?: string | null;
-  genres?: TMDBGenre[];
-  credits?: { cast?: TMDBCastMember[] };
-};
+import type { Movie } from "@/types/movie";
+import type { TMDBCastMember, TMDBGenre, TMDBMovieDetails } from "@/types/tmdb";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 

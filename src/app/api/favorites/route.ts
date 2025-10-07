@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// In-memory favorites store (per server instance)
 const favorites = new Set<number>();
 
 export async function GET() {

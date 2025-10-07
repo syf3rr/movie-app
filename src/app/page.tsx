@@ -1,58 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMovies, type Movie } from "@/hooks/useMovies";
-import { useFavoriteIds, useToggleFavorite } from "@/hooks/useFavorites";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect } from "react";
+import { useMovies } from "@/hooks/useMovies";
+import type { Movie } from "@/types/movie";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFiltersStore } from "@/store/useFiltersStore";
+import FilterBar from "@/components/FilterBar";
+import MovieCard from "@/components/MovieCard";
+import useDebouncedValue from "@/hooks/useDebouncedValue";
+import useSyncFiltersURL from "@/hooks/useSyncFiltersURL";
 
-function useDebouncedValue<T>(value: T, delay = 400) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
 
 export default function HomePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"title" | "year" | "rating">("rating");
-  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const page = useFiltersStore((s) => s.page);
+  const search = useFiltersStore((s) => s.search);
+  const sort = useFiltersStore((s) => s.sort);
+  const order = useFiltersStore((s) => s.order);
 
   const debouncedSearch = useDebouncedValue(search, 400);
-
-  // Initialize state from URL once
-  useEffect(() => {
-    const p = Number(searchParams.get("page") || "1");
-    const s = searchParams.get("search") || "";
-    const so = (searchParams.get("sort") || "rating") as
-      | "title"
-      | "year"
-      | "rating";
-    const or = (searchParams.get("order") || "desc") as "asc" | "desc";
-    setPage(Number.isFinite(p) && p > 0 ? p : 1);
-    setSearch(s);
-    setSort(so);
-    setOrder(or);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useSyncFiltersURL();
 
   const { data, isLoading, isError } = useMovies({
     page,
@@ -61,7 +29,6 @@ export default function HomePage() {
     order,
   });
 
-  // Reflect state to URL (without scroll/jump)
   useEffect(() => {
     const qs = new URLSearchParams();
     if (page && page !== 1) qs.set("page", String(page));
@@ -72,9 +39,6 @@ export default function HomePage() {
     router.replace(query ? `?${query}` : "?", { scroll: false });
   }, [page, debouncedSearch, sort, order, router]);
 
-  const { data: favData } = useFavoriteIds();
-  const toggleFav = useToggleFavorite();
-  const favoriteIds = new Set(favData?.ids ?? []);
 
   if (isLoading)
     return (
@@ -86,16 +50,11 @@ export default function HomePage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-3/4" />
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-4 w-52" />
-              </CardContent>
-            </Card>
+            <div key={i} className="space-y-2">
+              <Skeleton className="aspect-[2/3] w-full" />
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-24" />
+            </div>
           ))}
         </div>
       </main>
@@ -104,129 +63,18 @@ export default function HomePage() {
 
   const { data: movies, total } = data as { data: Movie[]; total: number };
   const canPrev = page > 1;
-  const canNext = movies.length > 0 && page * 20 < total; // TMDB ~20 на сторінку
+  const canNext = movies.length > 0 && page * 20 < total; 
 
   return (
     <main className="p-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          placeholder="Пошук за назвою…"
-          className="w-72"
-        />
-
-        <Select
-          value={sort}
-          onValueChange={(v) => {
-            setPage(1);
-            setSort(v as typeof sort);
-          }}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Сортування" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rating">Rating</SelectItem>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="year">Year</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="outline"
-          onClick={() => {
-            setPage(1);
-            setOrder((o) => (o === "asc" ? "desc" : "asc"));
-          }}
-          aria-label="Змінити порядок"
-          title="Змінити порядок"
-        >
-          {order === "asc" ? "▲ ASC" : "▼ DESC"}
-        </Button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="outline"
-            disabled={!canPrev}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Prev
-          </Button>
-          <span>Page {page}</span>
-          <Button
-            variant="outline"
-            disabled={!canNext}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <FilterBar canPrev={canPrev} canNext={canNext} />
 
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {movies.map((m: Movie) => {
-          const isFav = favoriteIds.has(m.id);
-          return (
-            <li key={m.id}>
-              <Link href={`/movies/${m.id}`} className="block h-full">
-                <Card className="h-full overflow-hidden">
-                  {m.posterPath ? (
-                    <div className="relative w-full aspect-[2/3] max-h-72 bg-muted">
-                      <Image
-                        src={`https://image.tmdb.org/t/p/w342${m.posterPath}`}
-                        alt={m.title}
-                        fill
-                        className="object-contain"
-                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      />
-                    </div>
-                  ) : null}
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      {m.title} {m.year ? `(${m.year})` : ""}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="text-sm opacity-80">
-                      Rating: {m.rating ?? "—"}
-                    </div>
-                    {m.genres.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {m.genres.map((g) => (
-                          <Badge key={g} variant="secondary">
-                            {g}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    {m.actors.length > 0 && (
-                      <div className="text-xs opacity-70">
-                        Actors: {m.actors.join(", ")}
-                      </div>
-                    )}
-                    <div className="pt-2">
-                      <Button
-                        variant={isFav ? "default" : "outline"}
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleFav.mutate({ id: m.id, next: !isFav });
-                        }}
-                      >
-                        {isFav ? "Зняти з улюблених" : "В улюблені"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          );
-        })}
+        {movies.map((m: Movie) => (
+          <li key={m.id}>
+            <MovieCard movie={m} />
+          </li>
+        ))}
       </ul>
     </main>
   );

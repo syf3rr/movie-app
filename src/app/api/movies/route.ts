@@ -1,44 +1,12 @@
 import { NextResponse } from "next/server";
-
-type Movie = {
-  id: number;
-  title: string;
-  year: number | null;
-  rating: number | null;
-  description: string | null;
-  actors: string[];
-  genres: string[];
-  posterPath?: string | null;
-};
-
-// TMDB response types (minimal subset we need)
-type TMDBSearchItem = {
-  id: number;
-  title?: string;
-  original_title?: string;
-  release_date?: string | null;
-  vote_average?: number;
-  overview?: string | null;
-  poster_path?: string | null;
-};
-
-type TMDBSearchResponse = {
-  page: number;
-  total_results: number;
-  results: TMDBSearchItem[];
-};
-
-type TMDBGenre = { id: number; name: string };
-type TMDBCastMember = {
-  id: number;
-  name: string;
-  popularity?: number;
-};
-
-type TMDBMovieDetails = TMDBSearchItem & {
-  genres?: TMDBGenre[];
-  credits?: { cast?: TMDBCastMember[] };
-};
+import type { Movie } from "@/types/movie";
+import type {
+  TMDBSearchItem,
+  TMDBSearchResponse,
+  TMDBGenre,
+  TMDBCastMember,
+  TMDBMovieDetails,
+} from "@/types/tmdb";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
@@ -52,9 +20,6 @@ export async function GET(req: Request) {
     | "rating";
   const order = (searchParams.get("order") || "desc") as "asc" | "desc";
 
-  // TODO: за потреби врахуй limit (TMDB працює з page, 20 items/page)
-
-  // Якщо є пошук — /search/movie, інакше — /discover/movie з sort_by
   const sortBy =
     sort === "title"
       ? `original_title.${order}`
@@ -72,7 +37,6 @@ export async function GET(req: Request) {
 
   const res = await fetch(endpoint, {
     headers: { Authorization: `Bearer ${process.env.TMDB_API_READ_TOKEN}` },
-    // cache: "no-store" // опційно, якщо не хочеш кеш
   });
 
   if (!res.ok) {
@@ -84,8 +48,6 @@ export async function GET(req: Request) {
 
   const json = (await res.json()) as TMDBSearchResponse;
 
-  // Деталізація фільмів (актори/жанри) — по кожному id
-  // Порада: для старту зроби 5–10 штук через Promise.all, потім оптимізуємо.
   const results: TMDBSearchItem[] = Array.isArray(json.results)
     ? json.results.slice(0, 10)
     : [];

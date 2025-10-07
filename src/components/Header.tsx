@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useFavoriteIds } from "@/hooks/useFavorites";
 import { Badge } from "@/components/ui/badge";
+import useFavoritesCount from "@/hooks/useFavoritesCount";
 
 export default function Header() {
-  const { data } = useFavoriteIds();
-  const count = data?.ids?.length ?? 0;
+  const count = useFavoritesCount();
 
   return (
     <header className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">

@@ -27,7 +27,6 @@ export function useToggleFavorite() {
       if (!res.ok) throw new Error("Fav toggle failed");
       return { id, next };
     },
-    // Optimistic update
     onMutate: async ({ id, next }) => {
       await qc.cancelQueries({ queryKey: ["favorites"] });
       const prev = qc.getQueryData<{ ids: number[] }>(["favorites"]);

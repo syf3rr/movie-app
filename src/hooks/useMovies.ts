@@ -1,17 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-
-export type Movie = {
-  id: number;
-  title: string;
-  year: number | null;
-  rating: number | null;
-  description: string | null;
-  actors: string[];
-  genres: string[];
-  posterPath?: string | null;
-};
+import type { MoviesResponse } from "@/types/movie";
 
 type Params = {
   page: number;
@@ -20,11 +10,7 @@ type Params = {
   order?: "asc" | "desc";
 };
 
-type MoviesResponse = {
-  data: Movie[];
-  page: number;
-  total: number;
-};
+type MoviesResponseLocal = MoviesResponse;
 
 function buildQuery(params: Params) {
   const qs = new URLSearchParams();
@@ -40,11 +26,11 @@ export function useMovies(params: Params) {
 
   return useQuery({
     queryKey: key,
-    queryFn: async (): Promise<MoviesResponse> => {
+    queryFn: async (): Promise<MoviesResponseLocal> => {
       const res = await fetch(`/api/movies?${buildQuery(params)}`);
       if (!res.ok) throw new Error("Failed to load movies");
       return res.json();
     },
-    keepPreviousData: true,
+    placeholderData: (prev) => prev, 
   });
 }

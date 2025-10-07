@@ -1,38 +1,23 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavoriteIds, useToggleFavorite } from "@/hooks/useFavorites";
+import type { Movie } from "@/types/movie";
+import { posterUrl } from "@/lib/tmdb";
+import useMovie from "@/hooks/useMovie";
 
-type Movie = {
-  id: number;
-  title: string;
-  year: number | null;
-  rating: number | null;
-  description: string | null;
-  actors: string[];
-  genres: string[];
-  posterPath?: string | null;
-};
+// Using shared Movie type
 
 export default function MovieDetailsPage() {
   const params = useParams<{ id: string }>();
   const movieId = Number(params.id);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["movie", movieId],
-    queryFn: async (): Promise<Movie> => {
-      const res = await fetch(`/api/movies/${movieId}`);
-      if (!res.ok) throw new Error("Failed to load movie");
-      return res.json();
-    },
-    enabled: Number.isFinite(movieId) && movieId > 0,
-  });
+  const { data, isLoading, isError } = useMovie(movieId);
 
   const { data: favData } = useFavoriteIds();
   const toggleFav = useToggleFavorite();
@@ -64,7 +49,7 @@ export default function MovieDetailsPage() {
       <div className="relative w-full aspect-[2/3] bg-muted">
         {m.posterPath && (
           <Image
-            src={`https://image.tmdb.org/t/p/w500${m.posterPath}`}
+            src={posterUrl(m.posterPath, 500) as string}
             alt={m.title}
             fill
             className="object-contain"
